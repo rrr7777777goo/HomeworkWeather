@@ -1,3 +1,5 @@
+###  사용 DB : MySQL
+
 ### 선택한 날짜의 일기 작성
 POST http://localhost:8085/create/diary?date=2024-05-04
 Content-Type: text/plain
