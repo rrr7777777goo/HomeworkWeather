@@ -33,7 +33,7 @@ public class DiaryService {
     @Value("${openweathermap.key}")
     private String apiKey_WeatherUrl;
 
-    private String weatherUrl = "https://api.openweathermap.org/data/2.5/weather?q=seoul&appid=" + apiKey_WeatherUrl;
+    private String weatherUrl = "https://api.openweathermap.org/data/2.5/weather?q=seoul&appid=";
 
     private String currentDateDataUrl = "http://worldtimeapi.org/api/timezone/Asia/Seoul";
 
@@ -54,7 +54,8 @@ public class DiaryService {
     @Transactional
     @Scheduled(cron = "0 0 1 * * *")
     public void saveWeatherData() {
-        dateWeatherRepository.save(getWeatherFromApi());
+        logger.info("현재 날씨 정보를 불러옵니다.");
+        dateWeatherRepository.save(getWeatherFromApi(getCurrentDateDataFromApi()));
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
@@ -137,7 +138,10 @@ public class DiaryService {
         if(dateWeatherListFromDB.size() == 0) {
             if (date.compareTo(currentDate) == 0) {
                 // 현재 날짜에 대한 날씨 정보가 없는 경우 새로 api에서 정보를 가져와야 한다.
-                return getWeatherFromApi();
+                logger.info("현재 날짜 '" + date.toString() + "'의 날씨 정보가 누락된 상태여서 불러오고 있습니다.");
+                DateWeather currentWeatherData = getWeatherFromApi(date);
+                dateWeatherRepository.save(currentWeatherData);
+                return currentWeatherData;
             }
             else {
                 // 과거 날짜에 대한 날씨 정보가 없는 경우 아래와 같이 값을 입력한다.
@@ -150,14 +154,14 @@ public class DiaryService {
         }
     }
 
-    private DateWeather getWeatherFromApi() {
+    private DateWeather getWeatherFromApi(LocalDate date) {
         // open weather map에서 날씨 데이터 가져오기
-        String weatherData = getStringFromApiUrl(weatherUrl);
+        String weatherData = getStringFromApiUrl(weatherUrl + apiKey_WeatherUrl);
 
         DateWeather dateWeather = new DateWeather();
         // 날씨 json 파싱하기
         Map<String, Object> parsedWeather = parseWeather(weatherData);
-        dateWeather.setDate(LocalDate.now());
+        dateWeather.setDate(date);
         dateWeather.setWeather(parsedWeather.get("main").toString());
         dateWeather.setIcon(parsedWeather.get("icon").toString());
         dateWeather.setTemperature((Double) parsedWeather.get("temp"));
